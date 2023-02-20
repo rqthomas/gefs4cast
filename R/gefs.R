@@ -9,7 +9,7 @@
 
 #' Stream NOAA GEFS GRIB to parquet
 #'
-#' 
+#'
 #' @param date date forecast is issued
 #' @param cycle hour forecast is issued (00, 06, 12, 18)
 #' @param threads parallel processes to run
@@ -27,12 +27,12 @@
 #'
 #' @examplesIf interactive()
 #' noaa_gefs()
-noaa_gefs <- 
-  function(date = Sys.Date(), 
-           cycle = "00", 
+noaa_gefs <-
+  function(date = Sys.Date(),
+           cycle = "00",
            threads = 70,
            gdal_ops = "", # "-co compress=zstd"
-           s3 = arrow::s3_bucket("drivers", 
+           s3 = arrow::s3_bucket("drivers",
                                  endpoint_override = "data.ecoforecast.org"),
            max_horizon = 840,
            purge = TRUE,
@@ -40,39 +40,51 @@ noaa_gefs <-
            dest = ".",
            locations = paste0("https://github.com/eco4cast/neon4cast-noaa-download/",
                                   "raw/master/noaa_download_site_list.csv"),
+           #name_pattern = "noaa/gefs-v12/stage1/{cycle_int}/{nice_date}/{site_id}/part-0.parquet"
            name_pattern = "noaa/gefs-v12/stage1/{cycle_int}/{nice_date}/part-0.parquet"
            ) {
-    
+
   if (date < lubridate::as_date("2020-09-25")) {
     stop("Dates earlier than 2020-09-25 are not currently supported")
   }
-  
+
   if (!quiet) {
   message(paste("date:", date))
   }
 
-  assert_gdal()
+  gefs4cast:::assert_gdal()
   stopifnot(cycle %in% c("00", "06", "12", "18"))
   if(is.character(date)) date <- as.Date(date)
   date <- format(date, "%Y%m%d")
   dest <- fs::dir_create(glue::glue(dest,"/gefs.{date}"))
   nice_date <- as.Date(date, "%Y%m%d")
   start_time <- lubridate::as_datetime(paste0(nice_date, " ",cycle,":00:00"))
-  
-  url_vars <- gefs_forecast(date, cycle=cycle, max_horizon = max_horizon)
-  p <- gdal_download(src = url_vars$url, vars = url_vars$vars, dest, threads, gdal_ops)
-  ns <- neon_coordinates(locations)
-  fc <- neon_extract(dest, ns = ns, start_time)
-  
+
+  url_vars <- gefs4cast:::gefs_forecast(date, cycle=cycle, max_horizon = max_horizon)
+  p <- gefs4cast:::gdal_download(src = url_vars$url, vars = url_vars$vars, dest, threads, gdal_ops)
+  ns <- gefs4cast:::neon_coordinates(locations)
+  fc <- gefs4cast:::neon_extract(dest, ns = ns, start_time)
+
   cycle_int <- as.integer(cycle)
+  sites <- unique(fc$site_id)
   path <- glue::glue(name_pattern)
   outfile <- s3$path(path)
   arrow::write_parquet(fc, outfile)
-  
-  if (purge) { 
+
+  #purrr::walk(sites, function(site,fc, name_pattern){
+  #  site_id <- site
+  #  path <- glue::glue(name_pattern)
+  #  outfile <- s3$path(path)
+  #  fc |> filter(site_id == site) |>
+  #  arrow::write_parquet(outfile)
+  #},
+  #fc,
+  #name_pattern)
+
+  if (purge) {
     fs::dir_delete(dest)
   }
-  
+
   invisible(p)
 }
 
