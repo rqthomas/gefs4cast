@@ -40,8 +40,8 @@ noaa_gefs <-
            dest = ".",
            locations = paste0("https://github.com/eco4cast/neon4cast-noaa-download/",
                                   "raw/master/noaa_download_site_list.csv"),
-           #name_pattern = "noaa/gefs-v12/stage1/{cycle_int}/{nice_date}/{site_id}/part-0.parquet"
-           name_pattern = "noaa/gefs-v12/stage1/{cycle_int}/{nice_date}/part-0.parquet"
+           name_pattern = "noaa/gefs-v12/stage1/{cycle_int}/{nice_date}/{site_id}/part-0.parquet"
+           #name_pattern = "noaa/gefs-v12/stage1/{cycle_int}/{nice_date}/part-0.parquet"
            ) {
 
   if (date < lubridate::as_date("2020-09-25")) {
@@ -71,15 +71,15 @@ noaa_gefs <-
   outfile <- s3$path(path)
   arrow::write_parquet(fc, outfile)
 
-  #purrr::walk(sites, function(site,fc, name_pattern){
-  #  site_id <- site
-  #  path <- glue::glue(name_pattern)
-  #  outfile <- s3$path(path)
-  #  fc |> filter(site_id == site) |>
-  #  arrow::write_parquet(outfile)
-  #},
-  #fc,
-  #name_pattern)
+  purrr::walk(sites, function(site,fc, name_pattern){
+    site_id <- site
+    path <- glue::glue(name_pattern)
+    outfile <- s3$path(path)
+    fc |> filter(site_id == site) |>
+    arrow::write_parquet(outfile)
+  },
+  fc,
+  name_pattern)
 
   if (purge) {
     fs::dir_delete(dest)

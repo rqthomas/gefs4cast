@@ -21,7 +21,7 @@ gefs_forecast <- function(date = "20220314",
 
   cases <- expand.grid(horizon, ensemble) |>
     stats::setNames(c("horizon", "ensemble")) |>
-    dplyr::filter(!(ensemble == "gec00" & as.numeric(as.character(horizon)) > 384)) |>
+    #dplyr::filter(!(ensemble == "gec00" & as.numeric(as.character(horizon)) > 384)) |>
     dplyr::filter(!(cycle != "00" & as.numeric(as.character(horizon)) > 384)) |>
     dplyr::filter(as.numeric(as.character(horizon)) <= max_horizon) |>
     dplyr::mutate(vars = ifelse(horizon != "000",
